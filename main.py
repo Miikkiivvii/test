@@ -138,70 +138,257 @@ class RaceApp(tk.Tk):
         self.details_text = tk.Text(details_frame, wrap=tk.WORD, state='disabled')
         self.details_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Вы можете добавить дополнительные вкладки при необходимости
-
     def add_race(self):
-        race = self.get_race_data()
-        if race:
+        # Создаем новое окно для добавления расы
+        add_race_window = tk.Toplevel(self)
+        add_race_window.title("Добавить расу")
+        add_race_window.geometry("400x500")
+
+        # Поля для ввода основных характеристик
+        ttk.Label(add_race_window, text="Имя расы:").pack(pady=5)
+        name_entry = ttk.Entry(add_race_window)
+        name_entry.pack(pady=5)
+
+        ttk.Label(add_race_window, text="Скорость:").pack(pady=5)
+        speed_entry = ttk.Entry(add_race_window)
+        speed_entry.pack(pady=5)
+
+        ttk.Label(add_race_window, text="Размер:").pack(pady=5)
+        size_entry = ttk.Entry(add_race_window)
+        size_entry.pack(pady=5)
+
+        ttk.Label(add_race_window, text="Темное зрение:").pack(pady=5)
+        dark_vision_entry = ttk.Entry(add_race_window)
+        dark_vision_entry.pack(pady=5)
+
+        # Секция для навыков
+        ttk.Label(add_race_window, text="Навыки:").pack(pady=5)
+        skills_frame = ttk.Frame(add_race_window)
+        skills_frame.pack(pady=5, fill=tk.BOTH, expand=True)
+
+        skills_listbox = tk.Listbox(skills_frame)
+        skills_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        skills_scrollbar = ttk.Scrollbar(skills_frame, orient="vertical", command=skills_listbox.yview)
+        skills_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        skills_listbox.config(yscrollcommand=skills_scrollbar.set)
+
+        # Кнопки управления навыками
+        skill_buttons_frame = ttk.Frame(add_race_window)
+        skill_buttons_frame.pack(pady=5)
+
+        def add_skill():
+            skill_data = self.get_skill_data_dialog()
+            if skill_data:
+                skills_listbox.insert(tk.END, skill_data['Название'])
+                skills_listbox.skills.append(skill_data)
+
+        def edit_skill():
+            selected_index = skills_listbox.curselection()
+            if selected_index:
+                index = selected_index[0]
+                skill_data = skills_listbox.skills[index]
+                updated_skill = self.get_skill_data_dialog(skill_data)
+                if updated_skill:
+                    skills_listbox.delete(index)
+                    skills_listbox.insert(index, updated_skill['Название'])
+                    skills_listbox.skills[index] = updated_skill
+
+        def delete_skill():
+            selected_index = skills_listbox.curselection()
+            if selected_index:
+                index = selected_index[0]
+                del skills_listbox.skills[index]
+                skills_listbox.delete(index)
+
+        skills_listbox.skills = []
+
+        add_skill_button = ttk.Button(skill_buttons_frame, text="Добавить навык", command=add_skill)
+        add_skill_button.pack(side=tk.LEFT, padx=5)
+
+        edit_skill_button = ttk.Button(skill_buttons_frame, text="Редактировать навык", command=edit_skill)
+        edit_skill_button.pack(side=tk.LEFT, padx=5)
+
+        delete_skill_button = ttk.Button(skill_buttons_frame, text="Удалить навык", command=delete_skill)
+        delete_skill_button.pack(side=tk.LEFT, padx=5)
+
+        def save_race():
+            name = name_entry.get().strip()
+            speed = speed_entry.get().strip()
+            size = size_entry.get().strip()
+            dark_vision = dark_vision_entry.get().strip()
+
+            if not name:
+                messagebox.showerror("Ошибка", "Введите имя расы.")
+                return
+            if not speed.isdigit():
+                messagebox.showerror("Ошибка", "Скорость должна быть числом.")
+                return
+
+            race = {
+                "Имя": name,
+                "Скорость": speed,
+                "Размер": size,
+                "Темное зрение": dark_vision,
+                "Навыки": skills_listbox.skills
+            }
+
             self.races.append(race)
             self.update_race_list()
             messagebox.showinfo("Успех", "Раса добавлена.")
+            add_race_window.destroy()
 
-    def get_race_data(self):
-        name = simpledialog.askstring("Название расы", "Введите название расы:")
-        if not name:
-            return None
-        speed = simpledialog.askstring("Скорость", "Введите скорость расы (число):")
-        if not speed or not speed.isdigit():
-            messagebox.showerror("Ошибка", "Скорость должна быть числом.")
-            return None
-        size = simpledialog.askstring("Размер", "Введите размер расы:")
-        dark_vision = simpledialog.askstring("Темное зрение", "Введите дальность темного зрения или 'Нет':")
-        num_skills = simpledialog.askinteger("Навыки", "Сколько навыков вы хотите добавить?")
-        if num_skills is None or num_skills < 0:
-            messagebox.showerror("Ошибка", "Некорректное количество навыков.")
-            return None
-        race = {
-            "Имя": name,
-            "Скорость": speed,
-            "Размер": size,
-            "Темное зрение": dark_vision,
-            "Навыки": []
-        }
-        for i in range(num_skills):
-            skill = self.get_skill_data(i+1)
-            if skill:
-                race["Навыки"].append(skill)
-        return race
+        save_button = ttk.Button(add_race_window, text="Сохранить расу", command=save_race)
+        save_button.pack(pady=10)
 
-    def get_skill_data(self, skill_number):
-        name = simpledialog.askstring(f"Навык {skill_number}", "Введите название навыка:")
-        if not name:
-            return None
-        description = simpledialog.askstring(f"Навык {skill_number}", "Введите описание навыка:")
-        is_important = messagebox.askyesno(f"Навык {skill_number}", "Является ли навык важным?")
-        skill = {
-            "Название": name,
-            "Описание": description,
-            "Важный": "Да" if is_important else "Нет"
-        }
-        has_options = messagebox.askyesno(f"Навык {skill_number}", "Есть ли у навыка опции?")
-        if has_options:
-            num_options = simpledialog.askinteger(f"Навык {skill_number}", "Сколько опций у навыка?")
-            skill["Опции"] = []
-            for j in range(num_options):
-                option_name = simpledialog.askstring(f"Опция {j+1} для навыка {name}", "Введите название опции:")
-                option_description = simpledialog.askstring(f"Опция {j+1} для навыка {name}", "Введите описание опции:")
-                option = {
-                    "Название": option_name,
-                    "Описание": option_description
-                }
-                skill["Опции"].append(option)
-        has_additional = messagebox.askyesno(f"Навык {skill_number}", "Есть ли дополнительная информация?")
-        if has_additional:
-            additional = simpledialog.askstring(f"Навык {skill_number}", "Введите дополнительную информацию:")
-            skill["Дополнительно"] = additional
-        return skill
+    def get_skill_data_dialog(self, skill=None):
+        skill_window = tk.Toplevel(self)
+        skill_window.title("Добавить навык" if skill is None else "Редактировать навык")
+        skill_window.geometry("400x400")
+
+        ttk.Label(skill_window, text="Название навыка:").pack(pady=5)
+        name_entry = ttk.Entry(skill_window)
+        name_entry.pack(pady=5)
+
+        ttk.Label(skill_window, text="Описание:").pack(pady=5)
+        description_text = tk.Text(skill_window, height=5)
+        description_text.pack(pady=5)
+
+        is_important_var = tk.BooleanVar()
+        is_important_check = ttk.Checkbutton(skill_window, text="Важный навык", variable=is_important_var)
+        is_important_check.pack(pady=5)
+
+        # Секция для опций навыка
+        ttk.Label(skill_window, text="Опции:").pack(pady=5)
+        options_frame = ttk.Frame(skill_window)
+        options_frame.pack(pady=5, fill=tk.BOTH, expand=True)
+
+        options_listbox = tk.Listbox(options_frame)
+        options_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        options_scrollbar = ttk.Scrollbar(options_frame, orient="vertical", command=options_listbox.yview)
+        options_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        options_listbox.config(yscrollcommand=options_scrollbar.set)
+
+        options_listbox.options = []
+
+        # Кнопки управления опциями
+        options_buttons_frame = ttk.Frame(skill_window)
+        options_buttons_frame.pack(pady=5)
+
+        def add_option():
+            option_data = self.get_option_data_dialog()
+            if option_data:
+                options_listbox.insert(tk.END, option_data['Название'])
+                options_listbox.options.append(option_data)
+
+        def edit_option():
+            selected_index = options_listbox.curselection()
+            if selected_index:
+                index = selected_index[0]
+                option_data = options_listbox.options[index]
+                updated_option = self.get_option_data_dialog(option_data)
+                if updated_option:
+                    options_listbox.delete(index)
+                    options_listbox.insert(index, updated_option['Название'])
+                    options_listbox.options[index] = updated_option
+
+        def delete_option():
+            selected_index = options_listbox.curselection()
+            if selected_index:
+                index = selected_index[0]
+                del options_listbox.options[index]
+                options_listbox.delete(index)
+
+        add_option_button = ttk.Button(options_buttons_frame, text="Добавить опцию", command=add_option)
+        add_option_button.pack(side=tk.LEFT, padx=5)
+
+        edit_option_button = ttk.Button(options_buttons_frame, text="Редактировать опцию", command=edit_option)
+        edit_option_button.pack(side=tk.LEFT, padx=5)
+
+        delete_option_button = ttk.Button(options_buttons_frame, text="Удалить опцию", command=delete_option)
+        delete_option_button.pack(side=tk.LEFT, padx=5)
+
+        ttk.Label(skill_window, text="Дополнительная информация:").pack(pady=5)
+        additional_text = tk.Text(skill_window, height=3)
+        additional_text.pack(pady=5)
+
+        if skill:
+            name_entry.insert(0, skill.get('Название', ''))
+            description_text.insert(tk.END, skill.get('Описание', ''))
+            is_important_var.set(skill.get('Важный', 'Нет') == 'Да')
+            additional_text.insert(tk.END, skill.get('Дополнительно', ''))
+            options_listbox.options = skill.get('Опции', [])
+            for option in options_listbox.options:
+                options_listbox.insert(tk.END, option['Название'])
+
+        def save_skill():
+            name = name_entry.get().strip()
+            description = description_text.get(1.0, tk.END).strip()
+            is_important = 'Да' if is_important_var.get() else 'Нет'
+            additional = additional_text.get(1.0, tk.END).strip()
+
+            if not name:
+                messagebox.showerror("Ошибка", "Введите название навыка.")
+                return
+
+            skill_data = {
+                "Название": name,
+                "Описание": description,
+                "Важный": is_important,
+                "Опции": options_listbox.options,
+                "Дополнительно": additional
+            }
+
+            skill_window.skill_data = skill_data
+            skill_window.destroy()
+
+        save_button = ttk.Button(skill_window, text="Сохранить навык", command=save_skill)
+        save_button.pack(pady=10)
+
+        skill_window.skill_data = None
+        self.wait_window(skill_window)
+        return skill_window.skill_data
+
+    def get_option_data_dialog(self, option=None):
+        option_window = tk.Toplevel(self)
+        option_window.title("Добавить опцию" if option is None else "Редактировать опцию")
+        option_window.geometry("300x200")
+
+        ttk.Label(option_window, text="Название опции:").pack(pady=5)
+        name_entry = ttk.Entry(option_window)
+        name_entry.pack(pady=5)
+
+        ttk.Label(option_window, text="Описание опции:").pack(pady=5)
+        description_text = tk.Text(option_window, height=5)
+        description_text.pack(pady=5)
+
+        if option:
+            name_entry.insert(0, option.get('Название', ''))
+            description_text.insert(tk.END, option.get('Описание', ''))
+
+        def save_option():
+            name = name_entry.get().strip()
+            description = description_text.get(1.0, tk.END).strip()
+
+            if not name:
+                messagebox.showerror("Ошибка", "Введите название опции.")
+                return
+
+            option_data = {
+                "Название": name,
+                "Описание": description
+            }
+
+            option_window.option_data = option_data
+            option_window.destroy()
+
+        save_button = ttk.Button(option_window, text="Сохранить опцию", command=save_option)
+        save_button.pack(pady=10)
+
+        option_window.option_data = None
+        self.wait_window(option_window)
+        return option_window.option_data
 
     def delete_race(self):
         selected_item = self.race_tree.focus()
